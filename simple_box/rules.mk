@@ -22,3 +22,5 @@ AUDIO_ENABLE = no           # Audio output
 
 JOYSTICK_ENABLE = yes
 JOYSTICK_DRIVER = analog
+
+DEBOUNCE_TYPE = sym_eager_pk

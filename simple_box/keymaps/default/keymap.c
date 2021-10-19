@@ -41,40 +41,76 @@ joystick_config_t joystick_axes[JOYSTICK_AXES_COUNT] = {
     [1] = JOYSTICK_AXIS_VIRTUAL
 };
 
+static uint8_t axesFlags = 0;
+enum axes {
+    XLow = 1,
+    XHigh = 2,
+    YLow = 4,
+    YHigh = 8,
+    Updated = 16
+};
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case JS_LEFT:
             if (record->event.pressed) {
-                joystick_status.axes[0] = -127;
+                axesFlags |= XLow;
             } else {
-                joystick_status.axes[0] = 0;
+                axesFlags &= ~XLow;
             }
-            joystick_status.status |= JS_UPDATED;
+            axesFlags |= Updated;
             break;
         case JS_RIGHT:
             if (record->event.pressed) {
-                joystick_status.axes[0] = 127;
+                axesFlags |= XHigh;
             } else {
-                joystick_status.axes[0] = 0;
+                axesFlags &= ~XHigh;
             }
-            joystick_status.status |= JS_UPDATED;
+            axesFlags |= Updated;
             break;
         case JS_UP:
             if (record->event.pressed) {
-                joystick_status.axes[1] = -127;
+                axesFlags |= YLow;
             } else {
-                joystick_status.axes[1] = 0;
+                axesFlags &= ~YLow;
             }
-            joystick_status.status |= JS_UPDATED;
+            axesFlags |= Updated;
             break;
         case JS_DOWN:
             if (record->event.pressed) {
-                joystick_status.axes[1] = 127;
+                axesFlags |= YHigh;
             } else {
-                joystick_status.axes[1] = 0;
+                axesFlags &= ~YHigh;
             }
-            joystick_status.status |= JS_UPDATED;
+            axesFlags |= Updated;
             break;
     }
     return true;
+}
+
+void joystick_task(void) {
+    if (axesFlags & Updated) {
+        if (axesFlags & XLow && axesFlags & XHigh) {
+            joystick_status.axes[0] = 0;
+        } else if (axesFlags & XLow) {
+            joystick_status.axes[0] = -127;
+        } else if (axesFlags & XHigh) {
+            joystick_status.axes[0] = 127;
+        } else {
+          joystick_status.axes[0] = 0;
+        }
+
+        if (axesFlags & YLow && axesFlags & YHigh) {
+            joystick_status.axes[1] = -127;
+        } else if (axesFlags & YLow) {
+            joystick_status.axes[1] = -127;
+        } else if (axesFlags & YHigh) {
+            joystick_status.axes[1] = 127;
+        } else {
+          joystick_status.axes[1] = 0;
+        }
+
+        send_joystick_packet(&joystick_status);
+        axesFlags &= ~Updated;
+    }
 }
