@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define PRODUCT      simple_box
 
 /* key matrix size */
-#define MATRIX_ROWS 12
+#define MATRIX_ROWS 13
 #define MATRIX_COLS 1
 
 /*
@@ -40,19 +40,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *                  ROW2COL = ROW = Anode (+), COL = Cathode (-, marked on diode)
  *
  */
+// https://make.kosakalab.com/.blog/wp-content/uploads/2016/07/Pro_Micro-768x426.png
 #define DIRECT_PINS { \
+    {D1}, \
+    {D0}, \
+    {D4}, \
+    {C6}, \
+    {B1}, \
+    {B3}, \
+    {B2}, \
+    {B6}, \
     {D7}, \
     {E6}, \
     {B4}, \
     {B5}, \
-    {B6}, \
-    {B2}, \
-    {B3}, \
-    {B1}, \
-    {F7}, \
-    {F6}, \
-    {F5}, \
-    {F4} \
+    {F7} \
 }
 #define UNUSED_PINS
 
@@ -162,5 +164,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //#define BOOTMAGIC_LITE_ROW 0
 //#define BOOTMAGIC_LITE_COLUMN 0
 
-#define JOYSTICK_BUTTON_COUNT 12
+#define JOYSTICK_BUTTON_COUNT 16
 #define JOYSTICK_AXES_COUNT 2

@@ -18,7 +18,8 @@
 
 // Defines names for use in layer keycodes and the keymap
 enum layer_names {
-    _BASE
+    _BASE,
+    _FN
 };
 
 // Defines the keycodes used by our macros in process_record_user
@@ -29,10 +30,33 @@ enum custom_keycodes {
     JS_DOWN,
 };
 
+#define JS_BTN1  JS_BUTTON7
+#define JS_BTN2  JS_BUTTON0
+#define JS_BTN3  JS_BUTTON1
+#define JS_BTN4  JS_BUTTON2
+#define JS_BTN5  JS_BUTTON3
+#define JS_BTN6  JS_BUTTON4
+#define JS_BTN7  JS_BUTTON5
+#define JS_BTN8  JS_BUTTON6
+#define JS_BTN9  JS_BUTTON15
+#define JS_BTN10 JS_BUTTON8
+#define JS_BTN11 JS_BUTTON9
+#define JS_BTN12 JS_BUTTON10
+#define JS_BTN13 JS_BUTTON11
+#define JS_BTN14 JS_BUTTON12
+#define JS_BTN15 JS_BUTTON13
+#define JS_BTN16 JS_BUTTON14
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    /* Base */
     [_BASE] = LAYOUT(
-        JS_LEFT, JS_DOWN, JS_RIGHT, JS_UP, JS_BUTTON7, JS_BUTTON0, JS_BUTTON1, JS_BUTTON2, JS_BUTTON3, JS_BUTTON4, JS_BUTTON5, JS_BUTTON6
+                                  MO(_FN),
+        JS_LEFT, JS_DOWN, JS_RIGHT,      JS_BTN4, JS_BTN1, JS_BTN7, JS_BTN8,
+                          JS_UP,         JS_BTN3, JS_BTN2, JS_BTN5, JS_BTN6
+    ),
+    [_FN] = LAYOUT(
+                                  XXXXXXX,
+        JS_LEFT, JS_DOWN, JS_RIGHT,      JS_BTN12, JS_BTN9, JS_BTN15, RESET,
+                          JS_UP,         JS_BTN11, JS_BTN10, JS_BTN13, JS_BTN14
     )
 };
 
