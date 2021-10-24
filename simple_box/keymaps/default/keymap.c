@@ -18,7 +18,8 @@
 
 // Defines names for use in layer keycodes and the keymap
 enum layer_names {
-    _BASE
+    _BASE,
+    _FN
 };
 
 // Defines the keycodes used by our macros in process_record_user
@@ -29,10 +30,27 @@ enum custom_keycodes {
     JS_DOWN,
 };
 
+enum {
+    TD_LTFN_JS
+};
+
+typedef enum {
+    TD_UNKNOWN,
+    TD_TAP,
+    TD_HOLD
+} td_state_t;
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* Base */
     [_BASE] = LAYOUT(
-        JS_LEFT, JS_DOWN, JS_RIGHT, JS_UP, JS_BUTTON7, JS_BUTTON0, JS_BUTTON1, JS_BUTTON2, JS_BUTTON3, JS_BUTTON4, JS_BUTTON5, JS_BUTTON6
+                                  TD(TD_LTFN_JS),
+        JS_LEFT, JS_DOWN, JS_RIGHT,      JS_BUTTON3, JS_BUTTON0, JS_BUTTON6, JS_BUTTON7,
+                          JS_UP,         JS_BUTTON2, JS_BUTTON1, JS_BUTTON4, JS_BUTTON5
+    ),
+    [_FN] = LAYOUT(
+                                  XXXXXXX,
+        JS_LEFT, JS_DOWN, JS_RIGHT,      JS_BUTTON0, JS_BUTTON0, JS_BUTTON0, JS_BUTTON0,
+                          JS_UP,         JS_BUTTON0, JS_BUTTON0, JS_BUTTON0, JS_BUTTON0
     )
 };
 
@@ -114,3 +132,46 @@ void joystick_task(void) {
         axesFlags &= ~Updated;
     }
 }
+
+td_state_t cur_dance(qk_tap_dance_state_t *state) {
+    if (state->count == 1) {
+        if (state->interrupted || !state->pressed) return TD_TAP;
+        else return TD_HOLD;
+    }
+    else return TD_UNKNOWN;
+}
+
+static td_state_t td_state;
+
+void ltfn_js_finished(qk_tap_dance_state_t *state, void *user_data) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_TAP:
+            process_joystick(JS_BUTTON0, &(keyrecord_t){.event.pressed = true});
+            break;
+        case TD_HOLD:
+            process_joystick(JS_BUTTON1, &(keyrecord_t){.event.pressed = true});
+    //        layer_on(_FN);
+            break;
+        case TD_UNKNOWN:
+            break;
+    }
+}
+
+void ltfn_js_reset(qk_tap_dance_state_t *state, void *user_data) {
+    switch (td_state) {
+        case TD_TAP:
+            process_joystick(JS_BUTTON0, &(keyrecord_t){.event.pressed = false});
+            break;
+        case TD_HOLD:
+            process_joystick(JS_BUTTON1, &(keyrecord_t){.event.pressed = false});
+            // layer_off(_FN);
+            break;
+        case TD_UNKNOWN:
+            break;
+    }
+}
+
+qk_tap_dance_action_t tap_dance_actions[] = {
+    [TD_LTFN_JS] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, ltfn_js_finished, ltfn_js_reset)
+};
