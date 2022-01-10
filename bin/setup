@@ -4,7 +4,8 @@ set -eux
 
 qmk setup
 
-cd /projects/qmk_firmware
+git clone https://github.com/qmk/qmk_firmware /workspace/qmk_firmware
+cd /workspace/qmk_firmware
 
 ln -sf ../../keyboards/simple_box keyboards/simple_box
 echo '/keyboards/simple_box' >> .git/info/exclude
