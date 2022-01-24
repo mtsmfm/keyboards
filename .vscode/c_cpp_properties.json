@@ -1,0 +1,35 @@
+{
+  "configurations": [
+    {
+      "name": "Nowa",
+      "includePath": [
+        "${workspaceFolder}/nowa",
+        "${workspaceFolder}/../qmk_firmware/platforms",
+        "${workspaceFolder}/../qmk_firmware/platforms/avr",
+        "${workspaceFolder}/../qmk_firmware/platforms/avr/drivers",
+        "${workspaceFolder}/../qmk_firmware/quantum",
+        "${workspaceFolder}/../qmk_firmware/quantum/audio",
+        "${workspaceFolder}/../qmk_firmware/quantum/bootmagic",
+        "${workspaceFolder}/../qmk_firmware/quantum/logging",
+        "${workspaceFolder}/../qmk_firmware/quantum/process_keycode",
+        "${workspaceFolder}/../qmk_firmware/quantum/sequencer",
+        "${workspaceFolder}/../qmk_firmware/tmk_core/protocol",
+        "${workspaceFolder}/../qmk_firmware/tmk_core/protocol",
+        "/usr/include",
+        "/usr/lib/avr/include",
+        "/usr/local/include"
+      ],
+      "forcedInclude": ["${workspaceFolder}/nowa/config.h"],
+      "defines": [
+        "QMK_KEYBOARD_H=\"nowa.h\"",
+        "__AVR_ATmega32U4__",
+        "CONSOLE_ENABLE"
+      ],
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu17",
+      "cppStandard": "gnu++14",
+      "intelliSenseMode": "linux-gcc-x64"
+    }
+  ],
+  "version": 4
+}
