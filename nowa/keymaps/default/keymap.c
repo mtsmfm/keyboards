@@ -7,6 +7,7 @@
   #include "print.h"
 #endif
 #include "transactions.h"
+#include <math.h>
 
 #ifndef MAX
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
@@ -118,16 +119,16 @@ void pointing_device_task(void) {
 
     // from -127 to 127
     if (horz_val < primary_analog_stick_threshold.min.horz_val || primary_analog_stick_threshold.max.horz_val < horz_val) {
-        report.x += pin_val_to_int8(horz_val) / 6;
+        report.x += ceil(pin_val_to_int8(horz_val) / 15.0);
     }
     if (vert_val < primary_analog_stick_threshold.min.vert_val || primary_analog_stick_threshold.max.vert_val < vert_val) {
-        report.y += pin_val_to_int8(vert_val) / 6;
+        report.y += ceil(pin_val_to_int8(vert_val) / 15.0);
     }
     if (secondary_analog_stick.horz_val < secondary_analog_stick_threshold.min.horz_val || secondary_analog_stick_threshold.max.horz_val < secondary_analog_stick.horz_val) {
-        report.x += pin_val_to_int8(secondary_analog_stick.horz_val) / 6;
+        report.x += ceil(pin_val_to_int8(secondary_analog_stick.horz_val) / 15.0);
     }
     if (secondary_analog_stick.vert_val < secondary_analog_stick_threshold.min.vert_val || secondary_analog_stick_threshold.max.vert_val < secondary_analog_stick.vert_val) {
-        report.y += pin_val_to_int8(secondary_analog_stick.vert_val) / 6;
+        report.y += ceil(pin_val_to_int8(secondary_analog_stick.vert_val) / 15.0);
     }
 
     pointing_device_set_report(report);
