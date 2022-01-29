@@ -8,6 +8,13 @@
 #endif
 #include "transactions.h"
 
+#ifndef MAX
+#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
+#endif
+#ifndef MIN
+#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
+#endif
+
 // Defines names for use in layer keycodes and the keymap
 enum layer_names
 {
@@ -45,7 +52,20 @@ typedef struct {
     int16_t vert_val;
 } analog_stick_data_t;
 
-analog_stick_data_t secondary_analog_stick = {.horz_val = HORZ_THRESHOLD_LOW, .vert_val = VERT_THRESHOLD_LOW};
+typedef struct {
+    analog_stick_data_t min;
+    analog_stick_data_t max;
+} analog_stick_threashold_t;
+
+analog_stick_threashold_t primary_analog_stick_threshold = {
+    .min = {.horz_val = 1023, .vert_val = 1023},
+    .max = {.horz_val = 0, .vert_val = 0}
+};
+analog_stick_threashold_t secondary_analog_stick_threshold = {
+    .min = {.horz_val = 1023, .vert_val = 1023},
+    .max = {.horz_val = 0, .vert_val = 0}
+};
+analog_stick_data_t secondary_analog_stick;
 
 int8_t pin_val_to_int8(int16_t v) {
     return (int8_t)(v / 4) - 128;
@@ -59,7 +79,32 @@ static void get_analog_stick_data_secondary_handler(uint8_t in_buflen, const voi
 void keyboard_post_init_kb(void) {
     setPinInputHigh(STICK_PUSH_PIN);
 
-    if (!is_keyboard_master()) {
+    if (is_keyboard_master()) {
+        for (uint8_t i = 0; i < 10; i++) {
+            int16_t horz_val = analogReadPin(HORZ_PIN);
+            int16_t vert_val = analogReadPin(VERT_PIN);
+
+            primary_analog_stick_threshold.min.horz_val = MIN(primary_analog_stick_threshold.min.horz_val, horz_val - STICK_THRESHOLD);
+            primary_analog_stick_threshold.min.vert_val = MIN(primary_analog_stick_threshold.min.vert_val, vert_val - STICK_THRESHOLD);
+
+            primary_analog_stick_threshold.max.horz_val = MAX(primary_analog_stick_threshold.max.horz_val, horz_val + STICK_THRESHOLD);
+            primary_analog_stick_threshold.max.vert_val = MAX(primary_analog_stick_threshold.max.vert_val, vert_val + STICK_THRESHOLD);
+
+            analog_stick_data_t data;
+            if (transaction_rpc_recv(GET_ANALOG_STICK_DATA, sizeof(data), &data)) {
+                secondary_analog_stick_threshold.min.horz_val = MIN(secondary_analog_stick_threshold.min.horz_val, data.horz_val - STICK_THRESHOLD);
+                secondary_analog_stick_threshold.min.vert_val = MIN(secondary_analog_stick_threshold.min.vert_val, data.vert_val - STICK_THRESHOLD);
+
+                secondary_analog_stick_threshold.max.horz_val = MAX(secondary_analog_stick_threshold.max.horz_val, data.horz_val + STICK_THRESHOLD);
+                secondary_analog_stick_threshold.max.vert_val = MAX(secondary_analog_stick_threshold.max.vert_val, data.vert_val + STICK_THRESHOLD);
+
+                secondary_analog_stick.horz_val = data.horz_val;
+                secondary_analog_stick.vert_val = data.vert_val;
+            }
+
+            wait_ms(10);
+        }
+    } else {
         transaction_register_rpc(GET_ANALOG_STICK_DATA, get_analog_stick_data_secondary_handler);
     }
 }
@@ -72,16 +117,16 @@ void pointing_device_task(void) {
     report_mouse_t report = pointing_device_get_report();
 
     // from -127 to 127
-    if (horz_val < HORZ_THRESHOLD_LOW || HORZ_THRESHOLD_HIGH < horz_val) {
+    if (horz_val < primary_analog_stick_threshold.min.horz_val || primary_analog_stick_threshold.max.horz_val < horz_val) {
         report.x += pin_val_to_int8(horz_val) / 6;
     }
-    if (vert_val < VERT_THRESHOLD_LOW || VERT_THRESHOLD_HIGH < vert_val) {
+    if (vert_val < primary_analog_stick_threshold.min.vert_val || primary_analog_stick_threshold.max.vert_val < vert_val) {
         report.y += pin_val_to_int8(vert_val) / 6;
     }
-    if (secondary_analog_stick.horz_val < HORZ_THRESHOLD_LOW || HORZ_THRESHOLD_HIGH < secondary_analog_stick.horz_val) {
+    if (secondary_analog_stick.horz_val < secondary_analog_stick_threshold.min.horz_val || secondary_analog_stick_threshold.max.horz_val < secondary_analog_stick.horz_val) {
         report.x += pin_val_to_int8(secondary_analog_stick.horz_val) / 6;
     }
-    if (secondary_analog_stick.vert_val < VERT_THRESHOLD_LOW || VERT_THRESHOLD_HIGH < secondary_analog_stick.vert_val) {
+    if (secondary_analog_stick.vert_val < secondary_analog_stick_threshold.min.vert_val || secondary_analog_stick_threshold.max.vert_val < secondary_analog_stick.vert_val) {
         report.y += pin_val_to_int8(secondary_analog_stick.vert_val) / 6;
     }
 
