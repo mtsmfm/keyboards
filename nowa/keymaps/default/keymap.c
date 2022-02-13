@@ -32,8 +32,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   ,                           KC_N   , KC_M   , KC_COMM, KC_DOT , KC_SLSH, KC_RSFT,
                  KC_GRV , KC_BSLS,                                                                                 KC_LBRC, KC_RBRC,
                                             KC_LCTL, KC_LWIN, MO(_FN1) ,     MO(_FN1) , KC_RWIN, KC_RCTL,
-                                            KC_DEL , XXXXXXX, DF(_FN1) ,     DF(_FN1) , XXXXXXX, KC_ENT ,
-                                            KC_BSPC, KC_RALT,                           KC_LALT, KC_SPC
+                                                     KC_RALT, DF(_FN1) ,     DF(_FN1) , KC_LALT,
+                                   KC_BSPC, KC_DEL , XXXXXXX,                           XXXXXXX, KC_ENT, KC_SPC
     ),
     [_FN1] = LAYOUT(
         _______, _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, _______,
@@ -42,8 +42,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______, _______, KC_WH_D, _______,                           _______, KC_WH_D, _______, _______, _______, _______,
                  _______, _______,                                                                                 _______, _______,
                                             _______, _______, _______  ,     _______  , _______, _______,
-                                            _______, _______, DF(_BASE),     DF(_BASE), _______, _______,
-                                            _______, _______,                           _______, _______
+                                                     _______, DF(_BASE),     DF(_BASE), _______,
+                                   _______, _______, _______,                           _______, _______, _______
     ),
 };
 // clang-format on
@@ -119,16 +119,16 @@ void pointing_device_task(void) {
 
     // from -127 to 127
     if (horz_val < primary_analog_stick_threshold.min.horz_val || primary_analog_stick_threshold.max.horz_val < horz_val) {
-        report.x += ceil(pin_val_to_int8(horz_val) / 15.0);
+        report.x -= ceil(pin_val_to_int8(horz_val) / 15.0);
     }
     if (vert_val < primary_analog_stick_threshold.min.vert_val || primary_analog_stick_threshold.max.vert_val < vert_val) {
-        report.y += ceil(pin_val_to_int8(vert_val) / 15.0);
+        report.y -= ceil(pin_val_to_int8(vert_val) / 15.0);
     }
     if (secondary_analog_stick.horz_val < secondary_analog_stick_threshold.min.horz_val || secondary_analog_stick_threshold.max.horz_val < secondary_analog_stick.horz_val) {
-        report.x += ceil(pin_val_to_int8(secondary_analog_stick.horz_val) / 15.0);
+        report.x -= ceil(pin_val_to_int8(secondary_analog_stick.horz_val) / 15.0);
     }
     if (secondary_analog_stick.vert_val < secondary_analog_stick_threshold.min.vert_val || secondary_analog_stick_threshold.max.vert_val < secondary_analog_stick.vert_val) {
-        report.y += ceil(pin_val_to_int8(secondary_analog_stick.vert_val) / 15.0);
+        report.y -= ceil(pin_val_to_int8(secondary_analog_stick.vert_val) / 15.0);
     }
 
     pointing_device_set_report(report);

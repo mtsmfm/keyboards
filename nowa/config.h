@@ -31,7 +31,7 @@
 // https://make.kosakalab.com/.blog/wp-content/uploads/2016/07/Pro_Micro-768x426.png
 #define MATRIX_ROW_PINS            \
   {                                \
-    B5, B4, E6, D7, C6, D4, NO_PIN \
+    D4, C6, D7, E6, B4, B5, NO_PIN \
   }
 #define MATRIX_COL_PINS    \
   {                        \
