@@ -16,33 +16,52 @@
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
 #endif
 
+#define LCL_IME LT(0, _LCL_IME)
+#define RCL_IME LT(0, _RCL_IME)
+
 // Defines names for use in layer keycodes and the keymap
 enum layer_names
 {
-    _BASE,
-    _FN1,
+    _L0,
+    _L1,
+    _L2,
+};
+
+enum custom_keycodes {
+    _LCL_IME = SAFE_RANGE,
+    _RCL_IME
 };
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    [_BASE] = LAYOUT(
+    [_L0] = LAYOUT(
         KC_EQL , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ,                           KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_MINS,
         KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ,                           KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , KC_BSLS,
         KC_ESC , KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ,                           KC_H   , KC_J   , KC_K   , KC_L   , KC_SCLN, KC_QUOT,
         KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   ,                           KC_N   , KC_M   , KC_COMM, KC_DOT , KC_SLSH, KC_RSFT,
                  KC_GRV , KC_BSLS,                                                                                 KC_LBRC, KC_RBRC,
-                                            KC_LCTL, KC_LWIN, MO(_FN1) ,     MO(_FN1) , KC_RWIN, KC_RCTL,
-                                                     KC_RALT, DF(_FN1) ,     DF(_FN1) , KC_LALT,
-                                   KC_BSPC, KC_DEL , XXXXXXX,                           XXXXXXX, KC_ENT, KC_SPC
+                                            LCL_IME, KC_LWIN, MO(_L1),         MO(_L1), KC_RWIN, RCL_IME,
+                                                     KC_RALT, DF(_L0),         DF(_L0), KC_LALT,
+                                   KC_BSPC, KC_DEL , DF(_L1),                           DF(_L2), KC_ENT, KC_SPC
     ),
-    [_FN1] = LAYOUT(
-        _______, _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, _______,
+    [_L1] = LAYOUT(
+        DF(_L0), _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, DF(_L0),
         _______, _______, KC_UP  , _______, KC_WH_U, _______,                           _______, KC_WH_U, _______, KC_UP  , _______, _______,
         _______, KC_LEFT, KC_DOWN, KC_RGHT, KC_BTN1, KC_BTN2,                           KC_BTN2, KC_BTN1, KC_LEFT, KC_DOWN, KC_RGHT, _______,
         _______, _______, _______, _______, KC_WH_D, _______,                           _______, KC_WH_D, _______, _______, _______, _______,
                  _______, _______,                                                                                 _______, _______,
-                                            _______, _______, _______  ,     _______  , _______, _______,
-                                                     _______, DF(_BASE),     DF(_BASE), _______,
+                                            _______, _______, _______,         _______, _______, _______,
+                                                     _______, DF(_L1),         DF(_L2), _______,
+                                   _______, _______, _______,                           _______, _______, _______
+    ),
+    [_L2] = LAYOUT(
+        DF(_L0), _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, DF(_L0),
+        _______, _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, _______,
+        _______, _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, _______,
+        _______, _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, _______,
+                 _______, _______,                                                                                 _______, _______,
+                                            _______, _______, XXXXXXX,         XXXXXXX, _______, _______,
+                                                     _______, _______,         _______, _______,
                                    _______, _______, _______,                           _______, _______, _______
     ),
 };
@@ -110,6 +129,31 @@ void keyboard_post_init_kb(void) {
     }
 }
 
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case LCL_IME:
+            if (record->tap.count && record->event.pressed) {
+                tap_code16(C(KC_GRAVE));
+            } else if (record->event.pressed) {
+                register_code16(KC_LCTL);
+            } else {
+                unregister_code16(KC_LCTL);
+            }
+            return false;
+        case RCL_IME:
+            if (record->tap.count && record->event.pressed) {
+                tap_code16(C(KC_GRAVE));
+            } else if (record->event.pressed) {
+                register_code16(KC_RCTL);
+            } else {
+                unregister_code16(KC_RCTL);
+            }
+            return false;
+    }
+
+    return true;
+}
+
 void pointing_device_task(void) {
     // from 0 to 1023
     int16_t horz_val = analogReadPin(HORZ_PIN);
@@ -117,18 +161,29 @@ void pointing_device_task(void) {
 
     report_mouse_t report = pointing_device_get_report();
 
+    int8_t delta_x = 0;
+    int8_t delta_y = 0;
+
     // from -127 to 127
     if (horz_val < primary_analog_stick_threshold.min.horz_val || primary_analog_stick_threshold.max.horz_val < horz_val) {
-        report.x -= ceil(pin_val_to_int8(horz_val) / 15.0);
+        delta_x += ceil(pin_val_to_int8(horz_val) / 15.0);
     }
     if (vert_val < primary_analog_stick_threshold.min.vert_val || primary_analog_stick_threshold.max.vert_val < vert_val) {
-        report.y -= ceil(pin_val_to_int8(vert_val) / 15.0);
+        delta_y += ceil(pin_val_to_int8(vert_val) / 15.0);
     }
     if (secondary_analog_stick.horz_val < secondary_analog_stick_threshold.min.horz_val || secondary_analog_stick_threshold.max.horz_val < secondary_analog_stick.horz_val) {
-        report.x -= ceil(pin_val_to_int8(secondary_analog_stick.horz_val) / 15.0);
+        delta_x += ceil(pin_val_to_int8(secondary_analog_stick.horz_val) / 15.0);
     }
     if (secondary_analog_stick.vert_val < secondary_analog_stick_threshold.min.vert_val || secondary_analog_stick_threshold.max.vert_val < secondary_analog_stick.vert_val) {
-        report.y -= ceil(pin_val_to_int8(secondary_analog_stick.vert_val) / 15.0);
+        delta_y += ceil(pin_val_to_int8(secondary_analog_stick.vert_val) / 15.0);
+    }
+
+    if (get_highest_layer(default_layer_state) != _L2) {
+        report.x -= delta_x;
+        report.y -= delta_y;
+    } else {
+        report.h += delta_x;
+        report.v += delta_y;
     }
 
     pointing_device_set_report(report);
