@@ -29,7 +29,11 @@ enum layer_names
 
 enum custom_keycodes {
     _LCL_IME = SAFE_RANGE,
-    _RCL_IME
+    _RCL_IME,
+    MO_LSCL,
+    MO_RSCL,
+    MO_LSLW,
+    MO_RSLW,
 };
 
 // clang-format off
@@ -42,13 +46,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                  KC_GRV , KC_BSLS,                                                                                 KC_LBRC, KC_RBRC,
                                             LCL_IME, KC_LWIN, MO(_L1),         MO(_L1), KC_RWIN, RCL_IME,
                                                      KC_RALT, DF(_L0),         DF(_L0), KC_LALT,
-                                   KC_BSPC, KC_DEL , DF(_L1),                           DF(_L2), KC_ENT, KC_SPC
+                                   KC_BSPC, KC_DEL , MO_LSCL,                           MO_RSCL, KC_ENT, KC_SPC
     ),
     [_L1] = LAYOUT(
         DF(_L0), _______, _______, _______, _______, _______,                           _______, _______, _______, _______, _______, DF(_L0),
-        _______, _______, KC_UP  , _______, KC_WH_U, _______,                           _______, KC_WH_U, _______, KC_UP  , _______, _______,
+        _______, _______, KC_UP  , _______, _______, _______,                           _______, _______, _______, KC_UP  , _______, _______,
         _______, KC_LEFT, KC_DOWN, KC_RGHT, KC_BTN1, KC_BTN2,                           KC_BTN2, KC_BTN1, KC_LEFT, KC_DOWN, KC_RGHT, _______,
-        _______, _______, _______, _______, KC_WH_D, _______,                           _______, KC_WH_D, _______, _______, _______, _______,
+        _______, _______, _______, _______, MO_LSLW, MO_LSCL,                           MO_RSCL, MO_RSLW, _______, _______, _______, _______,
                  _______, _______,                                                                                 _______, _______,
                                             _______, _______, _______,         _______, _______, _______,
                                                      _______, DF(_L1),         DF(_L2), _______,
@@ -86,6 +90,19 @@ analog_stick_threashold_t secondary_analog_stick_threshold = {
     .max = {.horz_val = 0, .vert_val = 0}
 };
 analog_stick_data_t secondary_analog_stick;
+
+enum analog_stick_mode {
+    CURSOR,
+    CURSOR_SLOW,
+    SCROLL,
+};
+
+typedef struct {
+    enum analog_stick_mode right;
+    enum analog_stick_mode left;
+} analog_stick_mode_state_t;
+
+analog_stick_mode_state_t analog_stick_mode_state;
 
 int8_t pin_val_to_int8(int16_t v) {
     return (int8_t)(v / 4) - 128;
@@ -149,6 +166,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 unregister_code16(KC_RCTL);
             }
             return false;
+        case MO_LSCL:
+            if (record->event.pressed) {
+                analog_stick_mode_state.left = SCROLL;
+            } else {
+                analog_stick_mode_state.left = CURSOR;
+            }
+            return false;
+        case MO_RSCL:
+            if (record->event.pressed) {
+                analog_stick_mode_state.right = SCROLL;
+            } else {
+                analog_stick_mode_state.right = CURSOR;
+            }
+            return false;
+        case MO_LSLW:
+            if (record->event.pressed) {
+                analog_stick_mode_state.left = CURSOR_SLOW;
+            } else {
+                analog_stick_mode_state.left = CURSOR;
+            }
+            return false;
+        case MO_RSLW:
+            if (record->event.pressed) {
+                analog_stick_mode_state.right = CURSOR_SLOW;
+            } else {
+                analog_stick_mode_state.right = CURSOR;
+            }
+            return false;
     }
 
     return true;
@@ -161,29 +206,45 @@ void pointing_device_task(void) {
 
     report_mouse_t report = pointing_device_get_report();
 
-    int8_t delta_x = 0;
-    int8_t delta_y = 0;
+    int8_t delta_left_x = 0;
+    int8_t delta_left_y = 0;
+    int8_t delta_right_x = 0;
+    int8_t delta_right_y = 0;
 
     // from -127 to 127
     if (horz_val < primary_analog_stick_threshold.min.horz_val || primary_analog_stick_threshold.max.horz_val < horz_val) {
-        delta_x += ceil(pin_val_to_int8(horz_val) / 15.0);
+        delta_left_x = pin_val_to_int8(horz_val);
     }
     if (vert_val < primary_analog_stick_threshold.min.vert_val || primary_analog_stick_threshold.max.vert_val < vert_val) {
-        delta_y += ceil(pin_val_to_int8(vert_val) / 15.0);
+        delta_left_y = pin_val_to_int8(vert_val);
     }
     if (secondary_analog_stick.horz_val < secondary_analog_stick_threshold.min.horz_val || secondary_analog_stick_threshold.max.horz_val < secondary_analog_stick.horz_val) {
-        delta_x += ceil(pin_val_to_int8(secondary_analog_stick.horz_val) / 15.0);
+        delta_right_x = pin_val_to_int8(secondary_analog_stick.horz_val);
     }
     if (secondary_analog_stick.vert_val < secondary_analog_stick_threshold.min.vert_val || secondary_analog_stick_threshold.max.vert_val < secondary_analog_stick.vert_val) {
-        delta_y += ceil(pin_val_to_int8(secondary_analog_stick.vert_val) / 15.0);
+        delta_right_y = pin_val_to_int8(secondary_analog_stick.vert_val);
     }
 
-    if (get_highest_layer(default_layer_state) != _L2) {
-        report.x -= delta_x;
-        report.y -= delta_y;
-    } else {
-        report.h += delta_x;
-        report.v += delta_y;
+    if (analog_stick_mode_state.left == CURSOR) {
+        report.x -= ceil(delta_left_x / 10.0);
+        report.y -= ceil(delta_left_y / 10.0);
+    } else if (analog_stick_mode_state.left == CURSOR_SLOW) {
+        report.x -= ceil(delta_left_x / 60.0);
+        report.y -= ceil(delta_left_y / 60.0);
+    } else if (analog_stick_mode_state.left == SCROLL) {
+        report.h += ceil(delta_left_x / 120.0);
+        report.v += ceil(delta_left_y / 120.0);
+    }
+
+    if (analog_stick_mode_state.right == CURSOR) {
+        report.x -= ceil(delta_right_x / 10.0);
+        report.y -= ceil(delta_right_y / 10.0);
+    } else if (analog_stick_mode_state.right == CURSOR_SLOW) {
+        report.x -= ceil(delta_right_x / 60.0);
+        report.y -= ceil(delta_right_y / 60.0);
+    } else if (analog_stick_mode_state.right == SCROLL) {
+        report.h += ceil(delta_right_x / 120.0);
+        report.v += ceil(delta_right_y / 120.0);
     }
 
     pointing_device_set_report(report);
